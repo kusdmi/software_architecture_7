@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth:
+    build: ./auth_service
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://user:password@db/auth_db
+      SECRET_KEY: supersecretkey
+    depends_on:
+      db:
+        condition: service_healthy
+
+  post:
+    build: ./post_service
+    ports:
+      - "8002:8000"
+    environment:
+      DATABASE_URL: postgresql://user:password@db/post_db
+      SECRET_KEY: supersecretkey
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
